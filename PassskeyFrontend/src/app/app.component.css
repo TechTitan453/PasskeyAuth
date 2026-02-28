@@ -1,0 +1,108 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(120deg, #0f172a, #1e293b);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.auth-wrapper {
+  width: 100%;
+  padding: 20px;
+}
+
+.auth-card {
+  max-width: 420px;
+  margin: auto;
+  background: #ffffff;
+  padding: 35px;
+  border-radius: 16px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+  position: relative;
+}
+
+.form {
+  display: none;
+  text-align: center;
+}
+
+.form h1 {
+  margin-bottom: 8px;
+  color: #111827;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 25px;
+}
+
+input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 15px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: #4f46e5;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #4338ca;
+}
+
+.switch-text {
+  margin-top: 18px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.switch-text label {
+  color: #4f46e5;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Show Register by default */
+.register {
+  display: block;
+}
+
+/* Toggle Logic */
+#toggle:checked ~ .login {
+  display: block;
+}
+
+#toggle:checked ~ .register {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 25px;
+  }
+}
