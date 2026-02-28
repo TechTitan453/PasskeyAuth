@@ -1,0 +1,6 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/PasskeyHackathon2.0_Backend/.vs
+/PasskeyHackathon2.0_Backend/obj
