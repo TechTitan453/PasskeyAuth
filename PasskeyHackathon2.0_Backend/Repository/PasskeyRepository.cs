@@ -1,61 +1,76 @@
 ﻿using System;
-using System.IO;
-using System.Text;
 using System.Threading.Tasks;
+using PasskeyHackathon2._0.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace PasskeyHackathon2._0.Repository
 {
     public class PasskeyRepository : IPasskeyRepository
     {
-        // Persist a passkey record. This implementation appends records to a CSV file
-        // located in the application's base directory named "passkeys.csv".
-        // Format: timestamp,username,fingerprintOrHash,domain
-        public  async Task<bool> CreatePasskey(string username, byte[] fingerprintOrHash, string domain)
+        private readonly AppDbContext _context;
+
+        public PasskeyRepository(AppDbContext context)
         {
+            _context = context;
+        }
+
+        // Persist a full passkey credential model
+        public async Task<bool> CreatePasskey(PasskeyCredentialModel credential)
+        {
+            if (credential == null) return false;
+
+            credential.CreatedAt = credential.CreatedAt == default ? DateTime.UtcNow : credential.CreatedAt;
+            credential.CredType = credential.CredType ?? "public-key";
+
+            _context.PasskeyCredentials.Add(credential);
+
             try
             {
-                var fileName = Path.Combine(AppContext.BaseDirectory, "passkeys.csv");
-
-                var directory = Path.GetDirectoryName(fileName);
-                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-                    Directory.CreateDirectory(directory);
-
-                static string Quote(string s) => "\"" + (s ?? string.Empty).Replace("\"", "\"\"") + "\"";
-
-                var line = string.Join(",",
-                    Quote(DateTime.UtcNow.ToString("o")),
-                    Quote(username),
-                    Quote(Convert.ToBase64String(fingerprintOrHash)),
-                    Quote(domain)
-                );
-
-                await File.AppendAllTextAsync(fileName, line + Environment.NewLine, Encoding.UTF8);
+                await _context.SaveChangesAsync();
                 return true;
             }
-            catch
+            catch (Exception)
             {
+                // Detach the failed/invalid entity so it won't be retried on a later SaveChanges
+                var entry = _context.Entry(credential);
+                if (entry != null) entry.State = EntityState.Detached;
                 return false;
             }
         }
 
-        public async Task<bool> VerifyPasskey(string username)
+        // Persist a passkey record to the database
+        public async Task<bool> CreatePasskey(string username, byte[] fingerprintOrHash, string domain)
+        {
+            var credential = new PasskeyCredentialModel
+            {
+                Email = username,
+                Fingerprint = fingerprintOrHash != null ? Convert.ToBase64String(fingerprintOrHash) : null,
+                Domain = domain,
+                CredType = "public-key",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.PasskeyCredentials.Add(credential);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                // Detach the failed/invalid entity so it won't be retried on a later SaveChanges
+                var entry = _context.Entry(credential);
+                if (entry != null) entry.State = EntityState.Detached;
+                return false;
+            }
+        }
+
+        public async Task<bool> VerifyPasskey(string username,string Domain)
         {
             try
             {
-                var fileName = Path.Combine(AppContext.BaseDirectory, "passkeys.csv");
-                if (!File.Exists(fileName)) return false;
-
-                var lines = await File.ReadAllLinesAsync(fileName, Encoding.UTF8);
-                foreach (var line in lines)
-                {
-                    var fields = ParseCsvLine(line);
-                    if (fields.Length >= 2 && string.Equals(fields[1], username, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
+                return await _context.PasskeyCredentials.AnyAsync(x => x.Email == username);
             }
             catch
             {
@@ -63,56 +78,88 @@ namespace PasskeyHackathon2._0.Repository
             }
         }
 
-        // Very small CSV parser for our quoted CSV format. Returns fields without surrounding quotes and with doubled quotes unescaped.
-        private static string[] ParseCsvLine(string line)
+        public async Task<bool> IsCredentialIdUnique(string credentialId)
         {
-            if (string.IsNullOrEmpty(line)) return Array.Empty<string>();
-            var list = new System.Collections.Generic.List<string>();
-            var sb = new StringBuilder();
-            bool inQuotes = false;
-            for (int i = 0; i < line.Length; i++)
+            try
             {
-                var c = line[i];
-                if (inQuotes)
+                if (string.IsNullOrEmpty(credentialId)) return true;
+                return !await _context.PasskeyCredentials.AnyAsync(x => x.CredentialId == credentialId);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        public async Task<PasskeyCredentialModel?> GetPasskeyByEmailAsync(string emailAddress)
+        {
+            return await _context.PasskeyCredentials
+                .FirstOrDefaultAsync(x => x.Email == emailAddress);
+        }
+
+        public async Task<PasskeyCredentialModel?> GetByCredentialIdAsync(string credentialId)
+        {
+            return await _context.PasskeyCredentials
+                .FirstOrDefaultAsync(x => x.CredentialId == credentialId);
+        }
+
+        public async Task<bool> UpdateSignatureCounterAsync(string credentialId, uint newCounter)
+        {
+            var cred = await GetByCredentialIdAsync(credentialId);
+            if (cred == null) return false;
+            cred.SignatureCounter = newCounter;
+            try
+            {
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                var entry = _context.Entry(cred);
+                if (entry != null) entry.State = EntityState.Detached;
+                return false;
+            }
+        }
+        public async Task StoreChallengeAsync(string email, string optionsJson)
+        {
+            var existing = await _context.PasskeyChallenges
+                .FirstOrDefaultAsync(x => x.Email == email);
+
+            if (existing != null)
+            {
+                existing.OptionsJson = optionsJson;
+                existing.CreatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                _context.PasskeyChallenges.Add(new PasskeyChallengeModel
                 {
-                    if (c == '"')
-                    {
-                        // peek for escaped quote
-                        if (i + 1 < line.Length && line[i + 1] == '"')
-                        {
-                            sb.Append('"');
-                            i++; // skip next quote
-                        }
-                        else
-                        {
-                            inQuotes = false;
-                        }
-                    }
-                    else
-                    {
-                        sb.Append(c);
-                    }
-                }
-                else
-                {
-                    if (c == '"')
-                    {
-                        inQuotes = true;
-                    }
-                    else if (c == ',')
-                    {
-                        list.Add(sb.ToString());
-                        sb.Clear();
-                    }
-                    else
-                    {
-                        sb.Append(c);
-                    }
-                }
+                    Email = email,
+                    OptionsJson = optionsJson,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
 
-            list.Add(sb.ToString());
-            return list.ToArray();
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<string?> GetChallengeAsync(string email)
+        {
+            var record = await _context.PasskeyChallenges
+                .FirstOrDefaultAsync(x => x.Email == email);
+
+            return record?.OptionsJson;
+        }
+
+        public async Task DeleteChallengeAsync(string email)
+        {
+            var record = await _context.PasskeyChallenges
+                .FirstOrDefaultAsync(x => x.Email == email);
+
+            if (record != null)
+            {
+                _context.PasskeyChallenges.Remove(record);
+                await _context.SaveChangesAsync();  
+            }
         }
     }
 }
