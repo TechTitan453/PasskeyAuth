@@ -9,8 +9,8 @@
       <h1>Create Account</h1>
       <p class="subtitle">Secure passwordless authentication</p>
 
-      <input type="text" placeholder=" Enter Email " required>
-      <button>Create Passkey</button>
+      <input type="text" placeholder=" Enter Email " [(ngModel)]="email" required>
+      <button (click)="registerPasskey()">Create Passkey</button>
 
       <p class="switch-text">
         Already registered?
@@ -23,8 +23,8 @@
       <h1>Welcome Back</h1>
       <p class="subtitle">Login using your passkey</p>
 
-      <input type="text" placeholder="Email " required>
-      <button>Login with Passkey</button>
+      <input type="text" placeholder="Email " #loginEmail required>
+      <button (click)="loginPasskey()">Login with Passkey</button>
 
       <p class="switch-text">
         New user?
