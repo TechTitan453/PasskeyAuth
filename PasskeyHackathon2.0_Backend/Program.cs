@@ -12,7 +12,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DefaultCorsPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
+        policy.WithOrigins("http://localhost:4200","https://passkey-auth-woad.vercel.app/")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -47,7 +47,8 @@ builder.Services.AddSingleton<Fido2>(sp =>
         Origins = new HashSet<string>
         {
             "http://localhost:4200",
-            "https://localhost:4200"
+            "https://localhost:4200" , 
+            "https://passkey-auth-woad.vercel.app"
         }
     });
 });

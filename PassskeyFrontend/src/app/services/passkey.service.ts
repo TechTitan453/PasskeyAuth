@@ -22,7 +22,7 @@ export class PasskeyService {
   constructor(private http:HttpClient) {
 
    } 
-   private baseUrl = 'https://localhost:7070/api/PassKey';
+   private baseUrl = 'http://techtitans.somee.com/api/PassKey';
    
 
    

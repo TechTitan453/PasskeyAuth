@@ -2,22 +2,23 @@
   <div class="auth-card">
 
     <!-- Toggle Checkbox -->
+    <div *ngIf="!isAuthenticated">
     <input type="checkbox" id="toggle" hidden>
 
-    <!-- REGISTER -->
-    <div class="form register">
+      <!-- REGISTER -->
+      <div class="form register">
       <h1>Create Account</h1>
       <p class="subtitle">Secure passwordless authentication</p>
 
       <input type="text" placeholder=" Enter Email " [(ngModel)]="email" required>
       <button (click)="registerPasskey()">Create Passkey</button>
-
+      
       <p class="switch-text">
         Already registered?
         <label for="toggle">Login</label>
       </p>
     </div>
-
+    
     <!-- LOGIN -->
     <div class="form login">
       <h1>Welcome Back</h1>
@@ -25,13 +26,17 @@
 
       <input type="text" placeholder="Email " #loginEmail required>
       <button (click)="loginPasskey()">Login with Passkey</button>
-
+      
       <p class="switch-text">
         New user?
         <label for="toggle">Register</label>
       </p>
     </div>
-
+    </div> 
+    <div *ngIf="isAuthenticated" class="welcome-message">
+      <h1>Welcome, {{email}}!</h1>
+      <p>You are successfully authenticated with your passkey.</p>
+    </div>
   </div>
 </div>
 

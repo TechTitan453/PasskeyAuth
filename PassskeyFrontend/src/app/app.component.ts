@@ -9,7 +9,8 @@ import { firstValueFrom } from 'rxjs';
 })
 export class AppComponent {
   title = 'PasskeyFrontend';  
-   email: string = ""; 
+   email: string = "";  
+   isAuthenticated :boolean = false;
    domainName :any = location.hostname;
   constructor(private passkeyService:PasskeyService){
 
@@ -45,9 +46,6 @@ export class AppComponent {
     return window.btoa(binary);
   }
 
-  // =============================
-  // 🔐 REGISTER PASSKEY
-  // =============================
 
   async registerPasskey() {
     try {
@@ -90,6 +88,7 @@ const data = {
   }
 };    
       alert("Passkey registered successfully!");
+      this.isAuthenticated = true;  
       this.passkeyService.verifyPasskey(data).subscribe(res => {
         console.log("Verification response:", res);
       });
@@ -120,7 +119,7 @@ const data = {
       }
     };
   }
-    async loginPasskey(): Promise<void> {
+    async loginPasskey() {
 
     try {
       // 1. request assertion options from the server 
@@ -128,7 +127,6 @@ const data = {
         EmailAddress: this.email,
         domain: this.domainName
       }
-      console.log(emailRequestmodel.EmailAddress);
       const opts = await firstValueFrom(
         this.passkeyService.loginOptions(emailRequestmodel)
       );
@@ -147,7 +145,7 @@ const data = {
       // 4. build JSON payload and send to backend for verification
       const payload = this.buildAssertionPayload(credential);
       await firstValueFrom(this.passkeyService.verifyLogin(payload));
-
+      this.isAuthenticated = true;  
       alert('Login successful!');
     } catch (err) {
       console.error('loginPasskey error', err);
